@@ -1,7 +1,8 @@
 import React from 'react';
 import { Lang } from '../translations.js';
 import { Theme } from '../types.js';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, PieChart as PieChartIcon } from 'lucide-react';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
 interface BatchProgressModalProps {
   lang: Lang;
@@ -29,10 +30,20 @@ export const BatchProgressModal: React.FC<BatchProgressModalProps> = ({
   const isLight = theme === 'light';
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+  const successLabel = lang === 'ur' ? 'کامیاب' : lang === 'my' ? 'အောင်မြင်မှု' : 'Successful';
+  const failedLabel = lang === 'ur' ? 'ناکام' : lang === 'my' ? 'မအောင်မြင်မှု' : 'Failed';
+
+  const chartData = [
+    { name: successLabel, value: successful, color: '#059669' }, // Emerald-600
+    { name: failedLabel, value: failed, color: '#ef4444' }, // Red-500
+  ].filter((item) => item.value > 0);
+
+  const successRatio = completed > 0 ? Math.round((successful / completed) * 100) : 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
       <div
-        className={`w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-7 space-y-5 border transition-colors ${
+        className={`w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-7 space-y-5 border transition-colors my-auto ${
           isLight
             ? 'bg-white border-emerald-100 text-neutral-900'
             : 'bg-neutral-900 border-neutral-800 text-white'
@@ -92,9 +103,7 @@ export const BatchProgressModal: React.FC<BatchProgressModalProps> = ({
                 : 'bg-neutral-950/60 border-neutral-800 text-neutral-400'
             }`}
           >
-            <span className="block mb-1 font-medium">
-              {lang === 'ur' ? 'کامیاب' : lang === 'my' ? 'အောင်မြင်မှု' : 'Successful'}
-            </span>
+            <span className="block mb-1 font-medium">{successLabel}</span>
             <span className="text-xl font-bold text-emerald-700 font-mono tabular-nums">
               {successful}
             </span>
@@ -106,16 +115,118 @@ export const BatchProgressModal: React.FC<BatchProgressModalProps> = ({
                 : 'bg-neutral-950/60 border-neutral-800 text-neutral-400'
             }`}
           >
-            <span className="block mb-1 font-medium">
-              {lang === 'ur' ? 'ناکام' : lang === 'my' ? 'မအောင်မြင်မှု' : 'Failed'}
-            </span>
+            <span className="block mb-1 font-medium">{failedLabel}</span>
             <span className="text-xl font-bold text-red-600 font-mono tabular-nums">
               {failed}
             </span>
           </div>
         </div>
 
-        {/* Current URL or item title */}
+        {/* Recharts Summary Chart on Finish */}
+        {isFinished && (completed > 0) && (
+          <div
+            className={`p-4 rounded-2xl border space-y-2 ${
+              isLight
+                ? 'bg-emerald-50/30 border-emerald-100'
+                : 'bg-neutral-950/40 border-neutral-800/80'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className={`flex items-center gap-1.5 ${isLight ? 'text-emerald-950' : 'text-neutral-200'}`}>
+                <PieChartIcon className="w-3.5 h-3.5 text-emerald-600" />
+                <span>
+                  {lang === 'ur'
+                    ? 'کامیابی کا تناسب (Ratio Summary)'
+                    : lang === 'my'
+                    ? 'အောင်မြင်မှု အချိုး အနှစ်ချုပ်'
+                    : 'Scrape Ratio Summary'}
+                </span>
+              </span>
+              <span className="text-emerald-700 font-mono font-bold">
+                {successRatio}% {lang === 'ur' ? 'کامیاب' : lang === 'my' ? 'အောင်မြင်' : 'Success'}
+              </span>
+            </div>
+
+            {chartData.length > 0 ? (
+              <div className="h-40 w-full relative flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      strokeWidth={1}
+                      stroke={isLight ? '#ffffff' : '#171717'}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0];
+                          const itemPercent = Math.round(((data.value as number) / completed) * 100);
+                          return (
+                            <div
+                              className={`px-3 py-1.5 rounded-lg shadow-lg border text-xs font-medium ${
+                                isLight
+                                  ? 'bg-white border-emerald-200 text-neutral-800'
+                                  : 'bg-neutral-900 border-neutral-700 text-white'
+                              }`}
+                            >
+                              <span className="font-semibold">{data.name}:</span>{' '}
+                              <span className="font-mono font-bold text-emerald-600">
+                                {data.value}
+                              </span>{' '}
+                              ({itemPercent}%)
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                {/* Donut Center Display */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                  <span className="text-lg font-black font-mono leading-none text-emerald-700">
+                    {successRatio}%
+                  </span>
+                  <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider mt-0.5">
+                    {lang === 'ur' ? 'کامیابی' : lang === 'my' ? 'အောင်မြင်' : 'Ratio'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-4 text-center text-xs text-neutral-400">
+                {lang === 'ur' ? 'کوئی ڈیٹا نہیں ملا' : 'No data recorded'}
+              </div>
+            )}
+
+            {/* Chart Legend */}
+            <div className="flex items-center justify-center gap-4 text-xs pt-1 border-t border-dashed border-emerald-100/60 dark:border-neutral-800">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                <span className="text-neutral-600 dark:text-neutral-400">{successLabel}:</span>
+                <span className="font-mono font-bold text-emerald-700">{successful}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="text-neutral-600 dark:text-neutral-400">{failedLabel}:</span>
+                <span className="font-mono font-bold text-red-600">{failed}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Current URL or item title while in progress */}
         {!isFinished && currentTitle && (
           <div
             className={`text-xs truncate p-2.5 rounded-xl border ${
