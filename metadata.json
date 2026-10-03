@@ -1,0 +1,6 @@
+{
+  "name": "Fatwa Scraper & Explorer - Darul Ifta & Deoband",
+  "description": "Automated web scraper and research portal for Islamic Fatwas from Darul Ifta Deoband and Darulifta.info. Features batch extraction, keyword search, structured JSON/CSV export, and multi-lingual reader.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
